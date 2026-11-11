@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WA_PHONE: ${{ secrets.WA_PHONE }}
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
       CALLMEBOT_KEY: ${{ secrets.CALLMEBOT_KEY }}
       MODE: ${{ github.event.schedule == '5 17,18 * * *' && 'daily' || (github.event.schedule && 'change') || inputs.mode }}
     steps:
