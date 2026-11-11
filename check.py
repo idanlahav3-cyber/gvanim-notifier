@@ -5,8 +5,9 @@ import requests
 from bs4 import BeautifulSoup
 
 URL = "https://gvanim.shahaf.site/?cls=17&tab=changes"  # ט6
-PHONE = os.environ["WA_PHONE"]        # למשל +972552771667
-APIKEY = os.environ["CALLMEBOT_KEY"]
+PHONE = os.environ.get("WA_PHONE") or None       # אופציונלי: וואטסאפ דרך CallMeBot
+APIKEY = os.environ.get("CALLMEBOT_KEY") or None
+TOPIC = os.environ.get("NTFY_TOPIC") or None     # אופציונלי: התראה לאייפון דרך ntfy
 MODE = os.environ.get("MODE", "change")  # change | daily | test | simulate | now
 STATE = "state/seen.json"
 TZ = ZoneInfo("Asia/Jerusalem")
@@ -29,9 +30,23 @@ def pretty(item):
 
 
 def send_whatsapp(text):
-    r = requests.get("https://api.callmebot.com/whatsapp.php", params={
-        "phone": PHONE, "text": text, "apikey": APIKEY}, timeout=60)
-    r.raise_for_status()
+    """שולח בכל הערוצים שהוגדרו (ntfy ו/או CallMeBot)."""
+    sent = False
+    if TOPIC:
+        r = requests.post("https://ntfy.sh/", json={
+            "topic": TOPIC, "message": text.replace("*", ""), "priority": 4}, timeout=30)
+        r.raise_for_status()
+        sent = True
+    if PHONE and APIKEY:
+        try:
+            r = requests.get("https://api.callmebot.com/whatsapp.php", params={
+                "phone": PHONE, "text": text, "apikey": APIKEY}, timeout=60)
+            r.raise_for_status()
+            sent = True
+        except Exception as e:
+            print("CallMeBot failed:", e)
+    if not sent:
+        raise SystemExit("לא הוגדר ערוץ שליחה תקין (NTFY_TOPIC או WA_PHONE+CALLMEBOT_KEY)")
 
 
 def main():
