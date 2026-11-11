@@ -1,0 +1,38 @@
+name: gvanim-notifier
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+    - cron: "5 17,18 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "test / simulate / now / change"
+        type: choice
+        default: test
+        options: [test, simulate, now, change]
+
+concurrency: gvanim
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      WA_PHONE: ${{ secrets.WA_PHONE }}
+      CALLMEBOT_KEY: ${{ secrets.CALLMEBOT_KEY }}
+      MODE: ${{ github.event.schedule == '5 17,18 * * *' && 'daily' || (github.event.schedule && 'change') || inputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install requests beautifulsoup4
+      - uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: state-none
+          restore-keys: state-
+      - run: python check.py
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: state
+          key: state-${{ github.run_id }}
